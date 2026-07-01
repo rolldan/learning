@@ -11,6 +11,7 @@
     return {
       selectedSubjects: [],
       planProgress: {},
+      senioritetProgress: {},
       moduleProgress: {},
       activeSubject: null,
       activeSubjectTab: 'oversikt',
@@ -48,10 +49,19 @@
     return detail?.weeks?.length || SUBJECTS.find((s) => s.id === subjectId)?.plan.length || 0;
   }
 
+  function getSenioritetTaskCount(subjectId) {
+    const sec = SUBJECT_SECTIONS[subjectId];
+    if (!sec?.senioritet) return 0;
+    return sec.senioritet.reduce((n, lvl) => n + lvl.tasks.length, 0);
+  }
+
   function getTotalItems() {
     let total = 0;
     LEARNING_MODULES.forEach((m) => (total += m.items.length));
-    SUBJECTS.forEach((s) => (total += getSubjectWeekCount(s.id)));
+    SUBJECTS.forEach((s) => {
+      total += getSubjectWeekCount(s.id);
+      total += getSenioritetTaskCount(s.id);
+    });
     return total;
   }
 
@@ -61,6 +71,9 @@
       done += Object.values(items).filter(Boolean).length;
     });
     Object.values(state.planProgress).forEach((items) => {
+      done += Object.values(items).filter(Boolean).length;
+    });
+    Object.values(state.senioritetProgress || {}).forEach((items) => {
       done += Object.values(items).filter(Boolean).length;
     });
     return done;
@@ -93,6 +106,7 @@
 
   const SUBJECT_TABS = [
     { id: 'oversikt', label: 'Oversikt' },
+    { id: 'senioritet', label: 'Senioritet' },
     { id: 'ukeplan', label: 'Ukeplan' },
     { id: 'leksjoner', label: 'Leksjoner' },
     { id: 'verktoy', label: 'Verktøy' },
@@ -100,6 +114,114 @@
     { id: 'vurdering', label: 'Vurdering' },
     { id: 'prompter', label: 'Prompter' },
   ];
+
+  function renderSenioritetTab(id, s, sec) {
+    const senProg = state.senioritetProgress[id] || {};
+    const toolkitSections = SECTION_META.map((meta) => {
+      const data = sec[meta.id];
+      if (!data) return '';
+      let body = `<p class="card-subtitle">${data.summary}</p>`;
+
+      if (data.points) {
+        body += `<ul class="list-bullet">${data.points.map((p) => `<li>${p}</li>`).join('')}</ul>`;
+      }
+      if (data.steps) {
+        body += `<p><strong>Neste steg:</strong> ${data.steps.join(' → ')}</p>`;
+      }
+      if (data.cases) {
+        body += `<ul class="list-bullet">${data.cases.map((c) => `<li><strong>${c.name}</strong> – ${c.lesson}</li>`).join('')}</ul>`;
+      }
+      if (data.questions) {
+        body += `<h4 style="margin-top:0.75rem;font-size:0.9rem">Guiding questions</h4><ul class="list-bullet">${data.questions.map((q) => `<li>${q}</li>`).join('')}</ul>`;
+      }
+      if (data.checklist) {
+        body += `<ul class="list-bullet">${data.checklist.map((c) => `<li>${c}</li>`).join('')}</ul>`;
+      }
+      if (data.goals) {
+        body += `<p><strong>Mål:</strong> ${data.goals.join(' · ')}</p>`;
+      }
+      if (data.actions) {
+        body += `<ul class="list-bullet">${data.actions.map((a) => `<li>${a}</li>`).join('')}</ul>`;
+      }
+      if (data.tools) {
+        body += `<p><strong>Verktøy:</strong> ${data.tools.join(', ')}</p>`;
+      }
+      if (data.resources) {
+        body += `<ul class="list-bullet">${data.resources.map((r) => `<li><a href="${r.url}" target="_blank" rel="noopener">${r.title}</a></li>`).join('')}</ul>`;
+      }
+
+      return `
+        <div class="toolkit-section-card">
+          <button class="toolkit-section-header" data-section-toggle="${meta.id}">
+            <span class="toolkit-section-icon">${meta.icon}</span>
+            <span class="toolkit-section-titles">
+              <strong>${meta.title}</strong>
+              <small>Microsoft Toolkit · ${meta.toolkit}</small>
+            </span>
+            <span class="toolkit-section-chevron">▼</span>
+          </button>
+          <div class="toolkit-section-body" id="sec-body-${meta.id}">
+            ${body}
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    const senioritetLevels = sec.senioritet
+      .map((lvl, li) => {
+        const meta = SENIORITET_META[li] || SENIORITET_META[0];
+        const done = lvl.tasks.filter((_, ti) => senProg[li + '-' + ti]).length;
+        return `
+          <div class="senioritet-card" style="--senioritet-color:${meta.color}">
+            <div class="senioritet-header">
+              <span class="senioritet-badge">${lvl.level}</span>
+              <span class="senioritet-progress">${done}/${lvl.tasks.length}</span>
+            </div>
+            ${lvl.desc ? `<p class="senioritet-desc">${lvl.desc}</p>` : ''}
+            <div class="senioritet-tasks">
+              ${lvl.tasks
+                .map(
+                  (task, ti) => `
+                <label class="senioritet-task ${senProg[li + '-' + ti] ? 'done' : ''}">
+                  <input type="checkbox" data-senioritet-subject="${id}" data-senioritet-level="${li}" data-senioritet-task="${ti}" ${senProg[li + '-' + ti] ? 'checked' : ''}>
+                  <span>${task}</span>
+                </label>
+              `
+                )
+                .join('')}
+            </div>
+          </div>
+        `;
+      })
+      .join('');
+
+    return `
+      <div class="card">
+        <h3>Toolkit-seksjoner for ${s.name}</h3>
+        <p class="card-subtitle">
+          De fem seksjonene fra Microsoft Education AI Toolkit – tilpasset ${s.name.toLowerCase()}.
+          Utvid hver seksjon for planer, verktøy og veiledning.
+        </p>
+        <div class="toolkit-sections">${toolkitSections}</div>
+      </div>
+      <div class="card">
+        <h3>Din senioritet som ${s.name.toLowerCase()}-lærer</h3>
+        <p class="card-subtitle">
+          Tre nivåer for hvordan du oppdaterer deg og leder AI-arbeid i faget.
+          Kryss av etter hvert som du fullfører.
+        </p>
+        <div class="senioritet-levels">${senioritetLevels}</div>
+      </div>
+    `;
+  }
+
+  function getSenioritetProgress(subjectId) {
+    const total = getSenioritetTaskCount(subjectId);
+    if (!total) return 0;
+    const prog = state.senioritetProgress[subjectId] || {};
+    const done = Object.values(prog).filter(Boolean).length;
+    return Math.round((done / total) * 100);
+  }
 
   function showSubjectsList() {
     state.activeSubject = null;
@@ -141,6 +263,11 @@
           <h3>${s.name}</h3>
           <div class="subject-card-level">${s.level}</div>
           <p class="subject-card-desc">${detail?.intro || s.aiUses[0]}</p>
+          <div class="subject-card-tags">
+            <span class="subject-tag">Senioritet</span>
+            <span class="subject-tag">5 seksjoner</span>
+            <span class="subject-tag">10-ukers plan</span>
+          </div>
           <div class="subject-card-footer">
             <span class="subject-card-progress">${pct > 0 ? pct + '% fullført' : 'Ikke startet'}</span>
             <span class="subject-card-cta">Gå inn i faget →</span>
@@ -165,10 +292,12 @@
   function renderSubjectView(id) {
     const s = SUBJECTS.find((x) => x.id === id);
     const d = SUBJECT_DETAILS[id];
-    if (!s || !d) return;
+    const sec = SUBJECT_SECTIONS[id];
+    if (!s || !d || !sec) return;
 
     const progress = state.planProgress[id] || {};
     const pct = getSubjectProgress(id);
+    const senPct = getSenioritetProgress(id);
     const tab = state.activeSubjectTab || 'oversikt';
 
     const tabsHtml = SUBJECT_TABS.map(
@@ -186,8 +315,12 @@
             <div class="subject-level">${s.level}</div>
             <p style="margin-top:0.5rem;color:var(--text-muted);font-size:0.95rem">${d.intro}</p>
             <div class="progress-bar-wrap" style="margin-top:0.75rem">
-              <div class="progress-label"><span>Ukeplan-fremdrift</span><span>${pct}%</span></div>
+              <div class="progress-label"><span>Ukeplan</span><span>${pct}%</span></div>
               <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${s.color},${s.color}99)"></div></div>
+            </div>
+            <div class="progress-bar-wrap" style="margin-top:0.4rem">
+              <div class="progress-label"><span>Senioritet</span><span>${senPct}%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${senPct}%;background:linear-gradient(90deg,#8764b8,#0078d4)"></div></div>
             </div>
           </div>
         </div>
@@ -214,6 +347,15 @@
           <h3>Regler for elever i ${s.name}</h3>
           <ul class="rule-list">${d.studentRules.map((r) => `<li>${r}</li>`).join('')}</ul>
         </div>
+        <div class="card" style="border-left:4px solid ${s.color}">
+          <h3>Toolkit-seksjoner i dette faget</h3>
+          <p class="card-subtitle">Gå til fanen <strong>Senioritet</strong> for alle fem seksjoner og din kompetansesti.</p>
+          <button class="btn btn-primary btn-sm goto-senioritet-tab">Åpne Senioritet →</button>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'senioritet' ? 'active' : ''}" data-tab="senioritet">
+        ${renderSenioritetTab(id, s, sec)}
       </div>
 
       <div class="subject-tab-content ${tab === 'ukeplan' ? 'active' : ''}" data-tab="ukeplan">
@@ -332,16 +474,38 @@
 
     $('#subject-detail-view').querySelectorAll('input[type="checkbox"]').forEach((cb) => {
       cb.addEventListener('change', (e) => {
-        const subj = e.target.dataset.subject;
-        const step = e.target.dataset.step;
-        if (!state.planProgress[subj]) state.planProgress[subj] = {};
-        state.planProgress[subj][step] = e.target.checked;
+        if (e.target.dataset.senioritetSubject) {
+          const subj = e.target.dataset.senioritetSubject;
+          const key = e.target.dataset.senioritetLevel + '-' + e.target.dataset.senioritetTask;
+          if (!state.senioritetProgress[subj]) state.senioritetProgress[subj] = {};
+          state.senioritetProgress[subj][key] = e.target.checked;
+        } else {
+          const subj = e.target.dataset.subject;
+          const step = e.target.dataset.step;
+          if (!state.planProgress[subj]) state.planProgress[subj] = {};
+          state.planProgress[subj][step] = e.target.checked;
+        }
         saveState();
-        renderSubjectView(subj);
+        renderSubjectView(id);
         renderSubjectGrid();
         renderDashboard();
       });
     });
+
+    $('#subject-detail-view').querySelectorAll('.toolkit-section-header').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const body = btn.nextElementSibling;
+        const chevron = btn.querySelector('.toolkit-section-chevron');
+        const open = body.classList.toggle('open');
+        btn.classList.toggle('open', open);
+        chevron.textContent = open ? '▲' : '▼';
+      });
+    });
+
+    const gotoSen = $('#subject-detail-view').querySelector('.goto-senioritet-tab');
+    if (gotoSen) {
+      gotoSen.addEventListener('click', () => openSubject(id, 'senioritet'));
+    }
 
     $('#subject-detail-view').querySelectorAll('.copy-prompt-btn').forEach((btn) => {
       btn.addEventListener('click', () => {
@@ -358,6 +522,11 @@
       gotoLearning.addEventListener('click', () => {
         $$('.nav-item[data-panel="learning"]')[0].click();
       });
+    }
+
+    const firstSec = $('#subject-detail-view .toolkit-section-header');
+    if (firstSec && tab === 'senioritet' && !firstSec.classList.contains('open')) {
+      firstSec.click();
     }
   }
 
@@ -583,7 +752,7 @@
     if (!state.selectedSubjects.length) {
       nextSteps.push({
         icon: '🎓',
-        text: 'Velg minst ett fag du underviser i for å få en skreddersydd plan',
+        text: 'Gå inn i et fag og utforsk Senioritet-fanen med toolkit-seksjonene',
         action: () => $$('.nav-item[data-panel="subjects"]')[0].click(),
       });
     } else {
@@ -594,8 +763,8 @@
         const subj = SUBJECTS.find((s) => s.id === lowest.id);
         nextSteps.push({
           icon: subj.icon,
-          text: `Fortsett AI-planen for ${subj.name} (${lowest.pct}% fullført)`,
-          action: () => openSubject(lowest.id, 'ukeplan'),
+          text: `Fortsett senioritet i ${subj.name} (${getSenioritetProgress(lowest.id)}% fullført)`,
+          action: () => openSubject(lowest.id, 'senioritet'),
         });
       }
     }

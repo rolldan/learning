@@ -1118,3 +1118,150 @@ a:hover {
   font-size: 0.9rem;
   border-left: 3px solid var(--accent);
 }
+
+.subject-card-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-bottom: 0.75rem;
+}
+
+.subject-tag {
+  font-size: 0.72rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  background: var(--surface-2);
+  color: var(--text-muted);
+}
+
+/* Toolkit sections inside subjects (senioritet) */
+.toolkit-sections {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.toolkit-section-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  overflow: hidden;
+}
+
+.toolkit-section-header {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  width: 100%;
+  padding: 0.9rem 1rem;
+  border: none;
+  background: var(--surface-2);
+  font-family: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.toolkit-section-header:hover,
+.toolkit-section-header.open {
+  background: var(--primary-light);
+}
+
+.toolkit-section-icon {
+  font-size: 1.4rem;
+}
+
+.toolkit-section-titles {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+}
+
+.toolkit-section-titles strong {
+  font-size: 0.95rem;
+}
+
+.toolkit-section-titles small {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+}
+
+.toolkit-section-chevron {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+.toolkit-section-body {
+  display: none;
+  padding: 1rem 1.25rem;
+  font-size: 0.9rem;
+  border-top: 1px solid var(--border);
+}
+
+.toolkit-section-body.open {
+  display: block;
+}
+
+/* Senioritet levels */
+.senioritet-levels {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.senioritet-card {
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  border-left: 4px solid var(--senioritet-color, var(--primary));
+}
+
+.senioritet-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.5rem;
+}
+
+.senioritet-badge {
+  font-weight: 700;
+  font-size: 1rem;
+  color: var(--senioritet-color, var(--primary));
+}
+
+.senioritet-progress {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-muted);
+}
+
+.senioritet-desc {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  margin-bottom: 0.75rem;
+}
+
+.senioritet-task {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.6rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid var(--surface-2);
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.senioritet-task:last-child {
+  border-bottom: none;
+}
+
+.senioritet-task input {
+  margin-top: 0.2rem;
+  accent-color: var(--senioritet-color, var(--accent));
+}
+
+.senioritet-task.done span {
+  color: var(--text-muted);
+  text-decoration: line-through;
+}
