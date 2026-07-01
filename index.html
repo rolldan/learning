@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html lang="nb">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI Toolkit for lærere – Seksjoner og fagplaner</title>
+  <meta name="description" content="Oppdater deg som lærer med Microsoft Education AI Toolkit. Utforsk seksjonene og se AI-planer tilpasset dine fag.">
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <header class="site-header">
+    <div class="header-inner">
+      <span class="badge">Microsoft Education AI Toolkit</span>
+      <h1>AI-veiviser for lærere</h1>
+      <p>
+        Utforsk toolkit-seksjonene, bygg kompetanse og få konkrete AI-planer
+        tilpasset fagene du underviser i.
+      </p>
+      <div class="header-stats">
+        <div class="stat">
+          <div class="stat-value" id="stat-sections">5</div>
+          <div class="stat-label">Toolkit-seksjoner</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-subjects">8</div>
+          <div class="stat-label">Fag med planer</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-modules">8</div>
+          <div class="stat-label">Læringsmoduler</div>
+        </div>
+        <div class="stat">
+          <div class="stat-value" id="stat-progress">0%</div>
+          <div class="stat-label">Din fremdrift</div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <div class="layout">
+    <nav class="sidebar" id="sidebar" aria-label="Hovednavigasjon">
+      <div class="nav-label">Navigasjon</div>
+      <button class="nav-item active" data-panel="dashboard">
+        <span class="nav-icon">🏠</span> Min oversikt
+      </button>
+      <button class="nav-item" data-panel="sections">
+        <span class="nav-icon">📚</span> Seksjonene
+      </button>
+      <button class="nav-item" data-panel="subjects">
+        <span class="nav-icon">🎓</span> Fagplaner
+      </button>
+      <button class="nav-item" data-panel="learning">
+        <span class="nav-icon">📈</span> Kompetanseheving
+      </button>
+    </nav>
+
+    <main class="main">
+      <!-- Dashboard -->
+      <section class="panel active" id="panel-dashboard">
+        <div class="card">
+          <h2>Velkommen, lærer!</h2>
+          <p class="card-subtitle">
+            Her får du oversikt over din AI-reise. Velg fag, fullfør moduler og følg planene steg for steg.
+          </p>
+          <div class="dashboard-grid" id="dashboard-stats"></div>
+        </div>
+
+        <div class="card">
+          <h3>Dine valgte fag</h3>
+          <p class="card-subtitle">Klikk et fag for å se plan og kompetansemål.</p>
+          <div class="subject-filter" id="dashboard-subjects"></div>
+        </div>
+
+        <div class="card">
+          <h3>Neste steg anbefalt for deg</h3>
+          <div id="dashboard-next-steps"></div>
+        </div>
+      </section>
+
+      <!-- Sections -->
+      <section class="panel" id="panel-sections">
+        <div class="card">
+          <h2>Toolkit-seksjonene</h2>
+          <p class="card-subtitle">
+            Microsoft Education AI Toolkit er organisert i fem hoveddeler.
+            Klikk en seksjon for detaljer.
+          </p>
+        </div>
+        <div class="section-grid" id="section-grid"></div>
+        <div id="section-detail"></div>
+      </section>
+
+      <!-- Subjects -->
+      <section class="panel" id="panel-subjects">
+        <div class="card">
+          <h2>Fagplaner for AI i undervisningen</h2>
+          <p class="card-subtitle">
+            Velg faget du underviser i for å se bruksområder, 10-ukers plan,
+            kompetansemål og ferdig Copilot-prompt.
+          </p>
+          <div class="subject-filter" id="subject-filter"></div>
+        </div>
+        <div id="subject-detail">
+          <div class="empty-state">
+            <span>📚</span>
+            <p>Velg et fag ovenfor for å se din AI-plan</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- Learning -->
+      <section class="panel" id="panel-learning">
+        <div class="card">
+          <h2>Kompetanseheving for lærere</h2>
+          <p class="card-subtitle">
+            Profesjonell læring basert på toolkit-seksjonene. Kryss av etter hvert
+            som du fullfører – fremdriften lagres lokalt i nettleseren.
+          </p>
+        </div>
+        <div class="module-list" id="module-list"></div>
+      </section>
+    </main>
+  </div>
+
+  <footer class="site-footer">
+    <p>
+      Basert på
+      <a href="https://marketingassets.microsoft.com/gdc/gdciQrVYO/original" target="_blank" rel="noopener">
+        Microsoft Education AI Toolkit
+      </a>
+      · Laget for lærere som vil oppdatere seg på AI i utdanning
+    </p>
+  </footer>
+
+  <script src="js/data.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
