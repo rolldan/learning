@@ -67,7 +67,7 @@
 
         <div class="card">
           <h3>Dine valgte fag</h3>
-          <p class="card-subtitle">Klikk et fag for å se plan og kompetansemål.</p>
+          <p class="card-subtitle">Klikk et fag for å gå inn i komplett plan med ukeplan, leksjoner og kompetansesti.</p>
           <div class="subject-filter" id="dashboard-subjects"></div>
         </div>
 
@@ -92,20 +92,17 @@
 
       <!-- Subjects -->
       <section class="panel" id="panel-subjects">
-        <div class="card">
-          <h2>Fagplaner for AI i undervisningen</h2>
-          <p class="card-subtitle">
-            Velg faget du underviser i for å se bruksområder, 10-ukers plan,
-            kompetansemål og ferdig Copilot-prompt.
-          </p>
-          <div class="subject-filter" id="subject-filter"></div>
-        </div>
-        <div id="subject-detail">
-          <div class="empty-state">
-            <span>📚</span>
-            <p>Velg et fag ovenfor for å se din AI-plan</p>
+        <div id="subjects-list-view">
+          <div class="card">
+            <h2>Fagplaner for AI i undervisningen</h2>
+            <p class="card-subtitle">
+              Velg et fag for å gå inn i komplett plan med uke-for-uke aktiviteter,
+              leksjoner, verktøy og kompetansesti for deg som lærer.
+            </p>
           </div>
+          <div class="subject-grid" id="subject-grid"></div>
         </div>
+        <div id="subject-detail-view" class="hidden"></div>
       </section>
 
       <!-- Learning -->
@@ -133,6 +130,7 @@
   </footer>
 
   <script src="js/data.js"></script>
+  <script src="js/subjects-detail.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

@@ -13,6 +13,7 @@
       planProgress: {},
       moduleProgress: {},
       activeSubject: null,
+      activeSubjectTab: 'oversikt',
       expandedModule: null,
       activeSection: null,
     };
@@ -42,10 +43,15 @@
     return map[tier] || 'tier-included';
   }
 
+  function getSubjectWeekCount(subjectId) {
+    const detail = SUBJECT_DETAILS[subjectId];
+    return detail?.weeks?.length || SUBJECTS.find((s) => s.id === subjectId)?.plan.length || 0;
+  }
+
   function getTotalItems() {
     let total = 0;
     LEARNING_MODULES.forEach((m) => (total += m.items.length));
-    SUBJECTS.forEach((s) => (total += s.plan.length));
+    SUBJECTS.forEach((s) => (total += getSubjectWeekCount(s.id)));
     return total;
   }
 
@@ -78,8 +84,297 @@
         btn.classList.add('active');
         $$('.panel').forEach((p) => p.classList.remove('active'));
         $('#panel-' + panel).classList.add('active');
+        if (panel === 'subjects' && !state.activeSubject) {
+          showSubjectsList();
+        }
       });
     });
+  }
+
+  const SUBJECT_TABS = [
+    { id: 'oversikt', label: 'Oversikt' },
+    { id: 'ukeplan', label: 'Ukeplan' },
+    { id: 'leksjoner', label: 'Leksjoner' },
+    { id: 'verktoy', label: 'Verktøy' },
+    { id: 'kompetanse', label: 'Oppdater deg' },
+    { id: 'vurdering', label: 'Vurdering' },
+    { id: 'prompter', label: 'Prompter' },
+  ];
+
+  function showSubjectsList() {
+    state.activeSubject = null;
+    location.hash = 'fag';
+    saveState();
+    $('#subjects-list-view').classList.remove('hidden');
+    $('#subject-detail-view').classList.add('hidden');
+    $('#subject-detail-view').innerHTML = '';
+    renderSubjectGrid();
+  }
+
+  function openSubject(id, tab) {
+    state.activeSubject = id;
+    state.activeSubjectTab = tab || 'oversikt';
+    if (!state.selectedSubjects.includes(id)) state.selectedSubjects.push(id);
+    const newHash = 'fag/' + id + (tab && tab !== 'oversikt' ? '/' + tab : '');
+    if (location.hash !== '#' + newHash) location.hash = newHash;
+    saveState();
+    $('#subjects-list-view').classList.add('hidden');
+    $('#subject-detail-view').classList.remove('hidden');
+    $$('.nav-item').forEach((b) => b.classList.remove('active'));
+    $$('.nav-item[data-panel="subjects"]')[0].classList.add('active');
+    $$('.panel').forEach((p) => p.classList.remove('active'));
+    $('#panel-subjects').classList.add('active');
+    renderSubjectView(id);
+    renderSubjectGrid();
+    renderDashboard();
+  }
+
+  function renderSubjectGrid() {
+    const grid = $('#subject-grid');
+    if (!grid) return;
+    grid.innerHTML = SUBJECTS.map((s) => {
+      const detail = SUBJECT_DETAILS[s.id];
+      const pct = getSubjectProgress(s.id);
+      return `
+        <div class="subject-card" data-subject="${s.id}" style="--subject-color:${s.color}">
+          <div class="subject-card-icon">${s.icon}</div>
+          <h3>${s.name}</h3>
+          <div class="subject-card-level">${s.level}</div>
+          <p class="subject-card-desc">${detail?.intro || s.aiUses[0]}</p>
+          <div class="subject-card-footer">
+            <span class="subject-card-progress">${pct > 0 ? pct + '% fullført' : 'Ikke startet'}</span>
+            <span class="subject-card-cta">Gå inn i faget →</span>
+          </div>
+        </div>
+      `;
+    }).join('');
+
+    grid.querySelectorAll('.subject-card').forEach((card) => {
+      card.addEventListener('click', () => openSubject(card.dataset.subject));
+    });
+  }
+
+  function getSubjectProgress(subjectId) {
+    const total = getSubjectWeekCount(subjectId);
+    if (!total) return 0;
+    const progress = state.planProgress[subjectId] || {};
+    const done = Object.values(progress).filter(Boolean).length;
+    return Math.round((done / total) * 100);
+  }
+
+  function renderSubjectView(id) {
+    const s = SUBJECTS.find((x) => x.id === id);
+    const d = SUBJECT_DETAILS[id];
+    if (!s || !d) return;
+
+    const progress = state.planProgress[id] || {};
+    const pct = getSubjectProgress(id);
+    const tab = state.activeSubjectTab || 'oversikt';
+
+    const tabsHtml = SUBJECT_TABS.map(
+      (t) => `<button class="subject-tab ${tab === t.id ? 'active' : ''}" data-tab="${t.id}">${t.label}</button>`
+    ).join('');
+
+    $('#subject-detail-view').innerHTML = `
+      <button class="subject-back" id="subject-back">← Tilbake til alle fag</button>
+
+      <div class="subject-hero" style="--subject-color:${s.color}">
+        <div class="subject-hero-top">
+          <div class="subject-hero-icon" style="background:${s.color}18">${s.icon}</div>
+          <div style="flex:1">
+            <h2>${s.name}</h2>
+            <div class="subject-level">${s.level}</div>
+            <p style="margin-top:0.5rem;color:var(--text-muted);font-size:0.95rem">${d.intro}</p>
+            <div class="progress-bar-wrap" style="margin-top:0.75rem">
+              <div class="progress-label"><span>Ukeplan-fremdrift</span><span>${pct}%</span></div>
+              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%;background:linear-gradient(90deg,${s.color},${s.color}99)"></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="subject-tabs" id="subject-tabs">${tabsHtml}</div>
+
+      <div class="subject-tab-content ${tab === 'oversikt' ? 'active' : ''}" data-tab="oversikt">
+        <div class="two-col">
+          <div class="card">
+            <h3>AI-bruksområder</h3>
+            <ul class="list-bullet">${s.aiUses.map((u) => `<li>${u}</li>`).join('')}</ul>
+          </div>
+          <div class="card">
+            <h3>Kompetansemål (LK20)</h3>
+            <ul class="list-bullet">${d.lk20.map((k) => `<li>${k}</li>`).join('')}</ul>
+          </div>
+        </div>
+        <div class="card">
+          <h3>Din kompetanse som lærer</h3>
+          <ul class="list-bullet">${s.competencies.map((c) => `<li>${c}</li>`).join('')}</ul>
+        </div>
+        <div class="card">
+          <h3>Regler for elever i ${s.name}</h3>
+          <ul class="rule-list">${d.studentRules.map((r) => `<li>${r}</li>`).join('')}</ul>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'ukeplan' ? 'active' : ''}" data-tab="ukeplan">
+        <div class="card">
+          <h3>10-ukers plan</h3>
+          <p class="card-subtitle">Kryss av hver uke når du fullfører aktiviteten. Planen følger toolkitens implementeringsmodell.</p>
+          <div class="week-grid">
+            ${d.weeks
+              .map(
+                (w, i) => `
+              <div class="week-card" style="--subject-color:${s.color}">
+                <label class="timeline-check" style="cursor:pointer">
+                  <input type="checkbox" data-subject="${id}" data-step="${i}" ${progress[i] ? 'checked' : ''} style="margin-bottom:0.5rem">
+                  <div class="week-card-num">Uke ${w.week}</div>
+                  <div class="week-card-title">${w.title}</div>
+                  <div class="week-card-activity">${w.activity}</div>
+                </label>
+              </div>
+            `
+              )
+              .join('')}
+          </div>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'leksjoner' ? 'active' : ''}" data-tab="leksjoner">
+        <div class="card">
+          <h3>Ferdige undervisningsopplegg</h3>
+          <p class="card-subtitle">Konkrete leksjoner du kan bruke eller tilpasse i ${s.name}.</p>
+          ${d.lessons
+            .map(
+              (l) => `
+            <div class="lesson-card">
+              <h4>${l.title}</h4>
+              <div class="lesson-meta"><span>⏱ ${l.duration}</span></div>
+              <div class="lesson-goal"><strong>Mål:</strong> ${l.goal}</div>
+              <ol class="lesson-steps">${l.steps.map((st) => `<li>${st}</li>`).join('')}</ol>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'verktoy' ? 'active' : ''}" data-tab="verktoy">
+        <div class="card">
+          <h3>Anbefalte verktøy for ${s.name}</h3>
+          <div class="tool-list">
+            ${d.tools.map((t) => `<div class="tool-item"><strong>${t.name}</strong><span>${t.use}</span></div>`).join('')}
+          </div>
+          <p style="margin-top:1.25rem">
+            <a href="https://m365copilot.com" target="_blank" rel="noopener" class="btn btn-primary btn-sm">Åpne Copilot Chat →</a>
+          </p>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'kompetanse' ? 'active' : ''}" data-tab="kompetanse">
+        <div class="card">
+          <h3>Oppdater deg som ${s.name.toLowerCase()}-lærer</h3>
+          <p class="card-subtitle">Din personlige kompetansesti for å ta i bruk AI i faget.</p>
+          ${d.teacherPath
+            .map(
+              (step, i) => `
+            <div class="teacher-step">
+              <div class="teacher-step-num">${i + 1}</div>
+              <div class="teacher-step-text">${step}</div>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+        <div class="card">
+          <h3>Relaterte læringsmoduler</h3>
+          <p class="card-subtitle">Gå til Kompetanseheving for å fullføre disse modulene.</p>
+          <button class="btn btn-outline btn-sm" id="goto-learning">Åpne kompetansemoduler →</button>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'vurdering' ? 'active' : ''}" data-tab="vurdering">
+        <div class="card">
+          <h3>Vurderingskriterier</h3>
+          <ul class="list-bullet">${d.assessment.map((a) => `<li>${a}</li>`).join('')}</ul>
+        </div>
+        <div class="card">
+          <h3>Klasseregler for AI-bruk</h3>
+          <ul class="rule-list">${d.studentRules.map((r) => `<li>${r}</li>`).join('')}</ul>
+        </div>
+      </div>
+
+      <div class="subject-tab-content ${tab === 'prompter' ? 'active' : ''}" data-tab="prompter">
+        <div class="card">
+          <h3>Copilot-prompter for ${s.name}</h3>
+          <p class="card-subtitle">Kopier og lim inn i <a href="https://m365copilot.com" target="_blank" rel="noopener">Copilot Chat</a>.</p>
+          ${d.prompts
+            .map(
+              (p, i) => `
+            <div class="prompt-item">
+              <div class="prompt-item-text">${p}</div>
+              <button class="btn btn-outline btn-sm copy-prompt-btn" data-prompt-idx="${i}">Kopier</button>
+            </div>
+          `
+            )
+            .join('')}
+        </div>
+      </div>
+    `;
+
+    $('#subject-back').addEventListener('click', showSubjectsList);
+
+    $('#subject-tabs').querySelectorAll('.subject-tab').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        state.activeSubjectTab = btn.dataset.tab;
+        openSubject(id, btn.dataset.tab);
+      });
+    });
+
+    $('#subject-detail-view').querySelectorAll('input[type="checkbox"]').forEach((cb) => {
+      cb.addEventListener('change', (e) => {
+        const subj = e.target.dataset.subject;
+        const step = e.target.dataset.step;
+        if (!state.planProgress[subj]) state.planProgress[subj] = {};
+        state.planProgress[subj][step] = e.target.checked;
+        saveState();
+        renderSubjectView(subj);
+        renderSubjectGrid();
+        renderDashboard();
+      });
+    });
+
+    $('#subject-detail-view').querySelectorAll('.copy-prompt-btn').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const idx = parseInt(btn.dataset.promptIdx);
+        navigator.clipboard.writeText(d.prompts[idx]).then(() => {
+          btn.textContent = '✓ Kopiert';
+          setTimeout(() => (btn.textContent = 'Kopier'), 2000);
+        });
+      });
+    });
+
+    const gotoLearning = $('#goto-learning');
+    if (gotoLearning) {
+      gotoLearning.addEventListener('click', () => {
+        $$('.nav-item[data-panel="learning"]')[0].click();
+      });
+    }
+  }
+
+  function parseHash() {
+    const hash = location.hash.replace(/^#/, '');
+    const parts = hash.split('/');
+    if (parts[0] === 'fag' && parts[1]) {
+      const subject = SUBJECTS.find((s) => s.id === parts[1]);
+      const validTab = SUBJECT_TABS.find((t) => t.id === parts[2]);
+      if (subject) {
+        openSubject(parts[1], validTab ? parts[2] : 'oversikt');
+        return;
+      }
+    }
+    if (parts[0] === 'fag' && !parts[1]) {
+      showSubjectsList();
+    }
   }
 
   function renderSectionGrid() {
@@ -156,117 +451,6 @@
     el.querySelectorAll('.chip').forEach((chip) => {
       chip.addEventListener('click', () => onSelect(chip.dataset.subject));
     });
-  }
-
-  function toggleSubject(id) {
-    const idx = state.selectedSubjects.indexOf(id);
-    if (idx === -1) state.selectedSubjects.push(id);
-    else state.selectedSubjects.splice(idx, 1);
-    state.activeSubject = id;
-    saveState();
-    renderSubjects();
-    renderDashboard();
-  }
-
-  function getSubjectProgress(subjectId) {
-    const subject = SUBJECTS.find((s) => s.id === subjectId);
-    if (!subject) return 0;
-    const progress = state.planProgress[subjectId] || {};
-    const done = subject.plan.filter((_, i) => progress[i]).length;
-    return Math.round((done / subject.plan.length) * 100);
-  }
-
-  function renderSubjectDetail(id) {
-    const s = SUBJECTS.find((x) => x.id === id);
-    if (!s) return;
-
-    const progress = state.planProgress[id] || {};
-    const pct = getSubjectProgress(id);
-
-    $('#subject-detail').innerHTML = `
-      <div class="card">
-        <div class="subject-header">
-          <div class="subject-icon-lg" style="background:${s.color}18">${s.icon}</div>
-          <div class="subject-meta">
-            <h2>${s.name}</h2>
-            <div class="subject-level">${s.level}</div>
-            <div class="progress-bar-wrap">
-              <div class="progress-label"><span>Planfremdrift</span><span>${pct}%</span></div>
-              <div class="progress-bar"><div class="progress-fill" style="width:${pct}%"></div></div>
-            </div>
-          </div>
-        </div>
-
-        <div class="two-col">
-          <div>
-            <h3>AI-bruksområder i faget</h3>
-            <ul class="list-bullet">${s.aiUses.map((u) => `<li>${u}</li>`).join('')}</ul>
-          </div>
-          <div>
-            <h3>Kompetansemål for deg som lærer</h3>
-            <ul class="list-bullet">${s.competencies.map((c) => `<li>${c}</li>`).join('')}</ul>
-          </div>
-        </div>
-
-        <h3 style="margin-top:1.5rem">10-ukers implementeringsplan</h3>
-        <p class="card-subtitle">Kryss av når du fullfører hvert steg. Planen følger toolkitens 5-stegs modell tilpasset ${s.name}.</p>
-        <div class="timeline">
-          ${s.plan
-            .map(
-              (p, i) => `
-            <div class="timeline-item ${progress[i] ? 'done' : ''}">
-              <label class="timeline-check">
-                <input type="checkbox" data-subject="${id}" data-step="${i}" ${progress[i] ? 'checked' : ''}>
-                <div>
-                  <div class="timeline-phase">${p.phase}</div>
-                  <div class="timeline-task">${p.task}</div>
-                </div>
-              </label>
-            </div>
-          `
-            )
-            .join('')}
-        </div>
-
-        <h3 style="margin-top:1.5rem">Copilot-prompt for ${s.name}</h3>
-        <div class="prompt-box" id="prompt-text">${s.prompt}</div>
-        <button class="btn btn-primary btn-sm" id="copy-prompt">📋 Kopier prompt</button>
-        <a href="https://m365copilot.com" target="_blank" rel="noopener" class="btn btn-outline btn-sm" style="margin-left:0.5rem">Åpne Copilot Chat →</a>
-      </div>
-    `;
-
-    $('#subject-detail').querySelectorAll('input[type="checkbox"]').forEach((cb) => {
-      cb.addEventListener('change', (e) => {
-        const subj = e.target.dataset.subject;
-        const step = e.target.dataset.step;
-        if (!state.planProgress[subj]) state.planProgress[subj] = {};
-        state.planProgress[subj][step] = e.target.checked;
-        saveState();
-        renderSubjectDetail(subj);
-        renderDashboard();
-      });
-    });
-
-    $('#copy-prompt').addEventListener('click', () => {
-      navigator.clipboard.writeText(s.prompt).then(() => {
-        $('#copy-prompt').textContent = '✓ Kopiert!';
-        setTimeout(() => ($('#copy-prompt').textContent = '📋 Kopier prompt'), 2000);
-      });
-    });
-  }
-
-  function selectSubject(id) {
-    state.activeSubject = id;
-    if (!state.selectedSubjects.includes(id)) state.selectedSubjects.push(id);
-    saveState();
-    renderSubjectFilter('#subject-filter', selectSubject);
-    renderSubjectDetail(id);
-    renderDashboard();
-  }
-
-  function renderSubjects() {
-    renderSubjectFilter('#subject-filter', selectSubject);
-    if (state.activeSubject) renderSubjectDetail(state.activeSubject);
   }
 
   function renderModules() {
@@ -372,16 +556,7 @@
       </div>
     `;
 
-    renderSubjectFilter('#dashboard-subjects', (id) => {
-      state.activeSubject = id;
-      if (!state.selectedSubjects.includes(id)) state.selectedSubjects.push(id);
-      saveState();
-      $$('.nav-item').forEach((b) => b.classList.remove('active'));
-      $$('.nav-item[data-panel="subjects"]')[0].classList.add('active');
-      $$('.panel').forEach((p) => p.classList.remove('active'));
-      $('#panel-subjects').classList.add('active');
-      renderSubjects();
-    });
+    renderSubjectFilter('#dashboard-subjects', (id) => openSubject(id));
 
     const nextSteps = [];
 
@@ -420,11 +595,7 @@
         nextSteps.push({
           icon: subj.icon,
           text: `Fortsett AI-planen for ${subj.name} (${lowest.pct}% fullført)`,
-          action: () => {
-            state.activeSubject = lowest.id;
-            $$('.nav-item[data-panel="subjects"]')[0].click();
-            renderSubjects();
-          },
+          action: () => openSubject(lowest.id, 'ukeplan'),
         });
       }
     }
@@ -459,10 +630,12 @@
   function init() {
     initNav();
     renderSectionGrid();
-    renderSubjects();
+    renderSubjectGrid();
     renderModules();
     renderDashboard();
     updateHeaderProgress();
+    window.addEventListener('hashchange', parseHash);
+    if (location.hash) parseHash();
   }
 
   init();

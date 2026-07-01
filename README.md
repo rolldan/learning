@@ -5,7 +5,7 @@ En nettside for lærere som vil oppdatere seg på AI i utdanning, basert på [Mi
 ## Funksjoner
 
 - **Seksjonene** – Oversikt over de fem hoveddelene i toolkit (Oversikt, AI Navigators, Planlegg, Implementer, Forskning)
-- **Fagplaner** – Konkrete 10-ukers AI-planer for 8 fag (Norsk, Matematikk, Engelsk, Naturfag, Samfunnsfag, KRLE, Kunst, Programfag)
+- **Fagplaner** – Gå inn i hvert fag med 7 faner: Oversikt, Ukeplan (10 uker), Leksjoner, Verktøy, Oppdater deg, Vurdering og Prompter
 - **Kompetanseheving** – 8 læringsmoduler med avkryssing og fremdriftssporing
 - **Min oversikt** – Dashboard med anbefalte neste steg
 
@@ -26,6 +26,7 @@ Gå deretter til http://localhost:8080
 ```
 index.html      – Hovedside
 css/styles.css  – Styling
-js/data.js      – Innhold (seksjoner, fag, moduler)
-js/app.js       – Interaktivitet og lagring
+js/data.js              – Grunninnhold (seksjoner, fag, moduler)
+js/subjects-detail.js   – Utvidet innhold per fag
+js/app.js               – Interaktivitet og lagring
 ```
