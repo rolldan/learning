@@ -1,0 +1,17 @@
+{
+  "name": "learning",
+  "install": "echo 'Static HTML/CSS/JS project - no dependencies to install.' && python3 --version",
+  "terminals": [
+    {
+      "name": "web",
+      "command": "python3 -m http.server 8080",
+      "description": "Serves the repository root over HTTP at http://localhost:8080 (open index.html / the project's HTML files in the browser)."
+    }
+  ],
+  "ports": [
+    {
+      "name": "web",
+      "port": 8080
+    }
+  ]
+}
